@@ -121,7 +121,7 @@ include_directories(
 
 ## Declare a C++ library
 add_library(${PROJECT_NAME}_gpio src/gpio.cpp )
-#add_library(${PROJECT_NAME}_mx240 src/mx240.cpp )
+add_library(${PROJECT_NAME}_mx240 src/mx240.cpp )
 #add_library(${PROJECT_NAME}_uart src/uart.cpp )
 #add_library(${PROJECT_NAME}_uart src/SerialPort.cpp )
 
@@ -149,16 +149,16 @@ add_library(${PROJECT_NAME}_gpio src/gpio.cpp )
 find_library(LIBCPPSERIAL CppLinuxSerial /src)
 
 ## Specify libraries to link a library or executable target against
-#target_link_libraries(${PROJECT_NAME}_mx240 
-  #${PROJECT_NAME}_gpio 
+target_link_libraries(${PROJECT_NAME}_mx240 
+  ${PROJECT_NAME}_gpio 
    #${PROJECT_NAME}_uart 
-   #   ${LIBCPPSERIAL}
-   #)
+  ${LIBCPPSERIAL}
+   )
 
 target_link_libraries(${PROJECT_NAME}_node 
    ${PROJECT_NAME}_gpio   
-   ${LIBCPPSERIAL}
-   # ${PROJECT_NAME}_mx240
+   #${LIBCPPSERIAL}
+   ${PROJECT_NAME}_mx240
    ${catkin_LIBRARIES}
  )
 

@@ -1,30 +1,23 @@
 #ifndef MX240_H
 #define MX240_H
 
-#include"uart.h"
-#include"gpio.h"
 #include<stdio.h>
 #include<string.h>
 #include <string>
 #include<unistd.h>
 #include<vector>
 
+#include"gpio.h"
+#include <CppLinuxSerial/SerialPort.hpp>
+
 #define _ctrlPin 38
-#define   BUFFER_SIZE 128
+#define BUFFER_SIZE 128
 
 class MX240 {
    public:
-     MX240() 
-       //seting up gpio
-        gpio_export(_ctrlPin);
-	      gpio_set_dir(_ctrlPin,1); //set as output
-        gpio_fd = gpio_fd_open(_ctrlPin);
-
-        printf("constructor init\n");
-      }
-
-      ~MX240(){}
-      std::vector<std::string> ping(uint8_t ID_pose); 
+     MX240();
+     ~MX240();
+     std::string ping(uint8_t ID_pose);
                  
   private:  
       int gpio_fd;
@@ -32,15 +25,11 @@ class MX240 {
       char crc_[2];
       char tx_buffer[BUFFER_SIZE]; 
       uint16_t len;
-      Uart uart;
-      unsigned short update_crc(unsigned short crc_accum,  char *data_blk_ptr, unsigned short data_blk_size);
-      void simpleWrite(char *buffer )
-      { 
-        std::string m_s;
-        m_s.assign(buffer,sizeof(buffer));
-        gpio_set_value(_ctrlPin,1);
-      }
+      mn::CppLinuxSerial::SerialPort serialPort;
 
+      unsigned short update_crc(unsigned short crc_accum,  char *data_blk_ptr, unsigned short data_blk_size);
+      void simpleWrite(char * buffer, int bufferSize);
+      std::string simpleRead();
 
 
 };
