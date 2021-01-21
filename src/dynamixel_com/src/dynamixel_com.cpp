@@ -8,6 +8,7 @@
 #include <unistd.h>
 //#include "gpio.h"
 #include <vector>
+#include <iostream>
 #include "mx240.h"
 
 #define _ctrlPin 38
@@ -20,9 +21,17 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
 
-//string reply;
+string reply;
  MX240 mx240;
- mx240.ping(0x00);
+reply= mx240.ping(0x00);
+cout <<reply<<endl;
+for(int i=0;i<sizeof(reply);i++)
+          {
+           
+            printf("%02X ",reply[i]);
+          }
+          printf ("\n");
+
 //if(mx240.ping(0x00)) cout <<"ping sucsessfull";
 
 }

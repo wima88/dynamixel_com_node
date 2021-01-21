@@ -13,6 +13,8 @@
 #define _ctrlPin 38
 #define BUFFER_SIZE 128
 
+#define DEBUG 1
+
 class MX240 {
    public:
      MX240();
@@ -21,15 +23,18 @@ class MX240 {
                  
   private:  
       int gpio_fd;
-      uint16_t crc;
-      char crc_[2];
       char tx_buffer[BUFFER_SIZE]; 
-      uint16_t len;
       mn::CppLinuxSerial::SerialPort serialPort;
+      static std::string data;
+      int header_pattern_start_bit;
+
+
 
       unsigned short update_crc(unsigned short crc_accum,  char *data_blk_ptr, unsigned short data_blk_size);
       void simpleWrite(char * buffer, int bufferSize);
       std::string simpleRead();
+      bool crc_check();
+      uint16_t param_length_calc();
 
 
 };
