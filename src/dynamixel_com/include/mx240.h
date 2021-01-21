@@ -25,7 +25,7 @@ class MX240 {
       int gpio_fd;
       char tx_buffer[BUFFER_SIZE]; 
       mn::CppLinuxSerial::SerialPort serialPort;
-      static std::string data;
+      std::string data;
       int header_pattern_start_bit;
 
 
