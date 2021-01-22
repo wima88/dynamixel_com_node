@@ -20,12 +20,15 @@ class MX240 {
      MX240();
      ~MX240();
      std::string ping(uint8_t ID_pose);
+     void writeDataToAddress(uint8_t ID_pose ,
+                             int tx_data,
+                             uint16_t *address);
+     bool readWithcrc_check();
                  
   private:  
       int gpio_fd;
-      char tx_buffer[BUFFER_SIZE]; 
       mn::CppLinuxSerial::SerialPort serialPort;
-      std::string data;
+      std::string data; //Rx_data
       int header_pattern_start_bit;
 
 
