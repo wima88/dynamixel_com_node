@@ -16,10 +16,15 @@ MX240::MX240() :  serialPort("/dev/ttyTHS1", mn::CppLinuxSerial::BaudRate::B_576
    gpio_fd = gpio_fd_open(_ctrlPin);
    serialPort.SetTimeout(-1); // Block when reading until any data is received
    serialPort.Open();
+   
+   writeDataToAddress(0x02,1,&TORQUE_ENABLE);
+
  }
 MX240:: ~MX240()
  {
+    writeDataToAddress(0x02,0,&TORQUE_ENABLE);
     serialPort.Close();
+    std::cout <<"destructor called \n" ;
  }
 
 
@@ -191,7 +196,7 @@ bool MX240::crc_check()
  *        address address of registry wich needs data to be written 
  * @return None 
  */
-void MX240::writeDataToAddress(uint8_t ID_pose ,int tx_data,uint16_t *address)
+void MX240::writeDataToAddress(uint8_t ID_pose ,int tx_data,const uint16_t *address)
 {
   uint16_t mem_size=12;
   uint16_t iterator=0;
@@ -235,6 +240,84 @@ void MX240::writeDataToAddress(uint8_t ID_pose ,int tx_data,uint16_t *address)
 #endif
 
     simpleWrite(m_tx_buffer,sizeof(m_tx_buffer));
+
+}
+
+/*
+ * <----overLoad function----->
+ * @param ID_pose position of the ID in ID array 
+ *        tx_Data data to be written 
+ *        address address of registry wich needs data to be written 
+ *        inst_pose Instruction position on inst array
+ * @return None 
+ */
+void MX240::writeDataToAddress(uint8_t ID_pose ,int tx_data,const uint16_t *address,uint8_t inst_pose)
+{
+  uint16_t mem_size=12;
+  uint16_t iterator=0;
+  uint16_t crc;
+  char crc_[2];
+
+  uint8_t data_size =4;
+  uint8_t data_array[4];
+
+  data_array[0] = tx_data & 0x000000FF;
+  data_array[1] = (tx_data>>8) & 0x000000FF;
+  data_array[2] = (tx_data>>16) & 0x000000FF;
+  data_array[3] = (tx_data>>24) & 0x000000FF;
+
+  mem_size += data_size; 
+  char m_tx_buffer [mem_size];
+  uint16_t m_len =data_size+5;
+
+
+  memcpy (m_tx_buffer,header,6);
+  memcpy (m_tx_buffer+sizeof(header),servo_ID+ID_pose,1);
+  memcpy (m_tx_buffer+sizeof(header)+1,&m_len,2);
+  memcpy (m_tx_buffer+sizeof(header)+3,inst+inst_pose,1);
+  memcpy (m_tx_buffer+sizeof(header)+4,address,2);
+  memcpy (m_tx_buffer+sizeof(header)+6,data_array,data_size);
+  
+  crc = update_crc(0,m_tx_buffer,mem_size -2);
+  crc_[0]=crc & 0x00FF;
+  crc_[1]=(crc>>8) & 0x00FF;  
+  memcpy (m_tx_buffer+sizeof(header)+6+data_size,crc_,2);
+
+#ifdef DEBUG
+  std::cout<<"writeDataToAddress :mem_size"<<mem_size<<std::endl;
+  std::cout << "writeDataToAddress : data buffer\n";
+  for(int i=0;i<sizeof(m_tx_buffer);i++)
+   {
+     printf("%02X ",m_tx_buffer[i]);
+   }
+    printf ("\n");
+
+#endif
+
+    simpleWrite(m_tx_buffer,sizeof(m_tx_buffer));
+
+}
+
+
+void MX240::set_speed(int left_speed,int right_speed)
+{
+  writeDataToAddress(0x00,left_speed,&GOAL_VELOCITY,3);
+  usleep(3500);
+  writeDataToAddress(0x01,right_speed,&GOAL_VELOCITY,3);
+  usleep(3500);
+  uint16_t crc;
+  char crc_[2];
+  uint16_t m_len = 3;
+  char m_tx_buffer[10]; 
+  memcpy (m_tx_buffer,header,6);
+  memcpy (m_tx_buffer+sizeof(header),servo_ID+2,1);
+  memcpy (m_tx_buffer+sizeof(header)+1,&m_len,2);
+  memcpy (m_tx_buffer+sizeof(header)+3,inst+4,1);
+  crc = update_crc(0,m_tx_buffer,8);
+  crc_[0]=crc & 0x00FF;
+  crc_[1]=(crc>>8) & 0x00FF;
+  memcpy (m_tx_buffer+sizeof(header)+4,&crc,2);
+  simpleWrite(m_tx_buffer ,sizeof(m_tx_buffer));
 
 }
 
