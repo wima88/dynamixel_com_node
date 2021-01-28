@@ -1,5 +1,6 @@
 //system includes
 #include <cstdlib>
+#include <exception>
 #include <string>
 #include <unistd.h>
 #include<stdio.h>
@@ -7,6 +8,7 @@
 
 //lib includes
 #include<CppLinuxSerial/SerialPort.hpp>
+#include <vector>
 #include"mx240.h"
 
 MX240::MX240() :  serialPort("/dev/ttyTHS1", mn::CppLinuxSerial::BaudRate::B_57600)
@@ -332,8 +334,19 @@ void MX240::ReadDataFromAddress(uint8_t ID_pose,const uint16_t *address,uint16_t
 }
 
 
+/*
+ *Instruction to control multiple devices simultaneously using one Instruction Packet
+ *The Address and Data Length of the data must all be the same.
+ *If the Address of the data is not continual, an Indirect Address can be used.
+ *Packet ID field : 0xFE (Broadcast ID)
+ *
+ * @param address
+ *        array_of IDs contains the device ids
+ *        number of devices 
+ * @return vector contains the stat packet of each ids
+ */
 
-void MX240::syncRead(const uint16_t *address,const char *ID_array, int sizeofArray)
+std::vector<std::string>  MX240::syncRead(const uint16_t *address,const char *ID_array, int sizeofArray)
 {
   uint16_t mem_size=14+sizeofArray;
   uint16_t crc;
@@ -341,6 +354,8 @@ void MX240::syncRead(const uint16_t *address,const char *ID_array, int sizeofArr
 
   char m_tx_buffer [mem_size];
   uint16_t m_len =7+sizeofArray;
+
+  std::vector<std::string> data_container;
 
 
   memcpy (m_tx_buffer,header,6);
@@ -364,9 +379,12 @@ void MX240::syncRead(const uint16_t *address,const char *ID_array, int sizeofArr
 
 #endif
     simpleWrite(m_tx_buffer,sizeof(m_tx_buffer));
-    simpleRead();
-    simpleRead();
+    for(int i = 0 ; i< sizeofArray ; i++)
+    {
+     data_container.push_back(simpleRead());
+    }
 
+    return data_container;
 
 }
 

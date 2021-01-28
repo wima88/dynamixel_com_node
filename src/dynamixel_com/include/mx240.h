@@ -33,9 +33,9 @@ class MX240 {
                               const uint16_t *address,
                               uint16_t data_length );
 
-     void syncRead(const uint16_t *address,
-                   const char *ID_array,
-                   int sizeofArray);
+     std::vector<std::string>  syncRead(const uint16_t *address,
+                                        const char *ID_array,
+                                        int sizeofArray);
 
      bool readWithcrc_check();
      void set_speed(int left_speed,int right_speed );
