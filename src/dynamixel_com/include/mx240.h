@@ -23,12 +23,23 @@ class MX240 {
      void writeDataToAddress(uint8_t ID_pose ,
                              int tx_data,
                              const uint16_t *address);
-     void writeDataToAddress(uint8_t ID_pose ,
+
+     void writeDataToAddress(uint8_t ID_pose ,  /*reg write */
                              int tx_data,
                              const uint16_t *address,
                              uint8_t inst_pose);
+
+     void ReadDataFromAddress(uint8_t ID_pose,
+                              const uint16_t *address,
+                              uint16_t data_length );
+
+     void syncRead(const uint16_t *address,
+                   const char *ID_array,
+                   int sizeofArray);
+
      bool readWithcrc_check();
      void set_speed(int left_speed,int right_speed );
+     bool read_speed(int* left_speed,int* right_speed );
                  
   private:  
       int gpio_fd;
@@ -49,7 +60,7 @@ class MX240 {
 
  const char header[] = {0xFF,0xFF,0xFD,0x00};
  const char servo_ID[]   = {0x01,0x02,0xFE}; //L,R,B
- const char inst[]    = {0x01,0x02,0x03,0x04,0x05}; //ping,read,write
+ const char inst[]    = {0x01,0x02,0x03,0x04,0x05,0x82}; //ping,read,write
 
 //address list for dynamixel ML420
 const uint16_t	TORQUE_ENABLE	 =	64	;

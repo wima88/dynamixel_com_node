@@ -1,4 +1,5 @@
 //system includes
+#include <cstdlib>
 #include <string>
 #include <unistd.h>
 #include<stdio.h>
@@ -14,7 +15,7 @@ MX240::MX240() :  serialPort("/dev/ttyTHS1", mn::CppLinuxSerial::BaudRate::B_576
    gpio_export(_ctrlPin);
    gpio_set_dir(_ctrlPin,1); //set as output
    gpio_fd = gpio_fd_open(_ctrlPin);
-   serialPort.SetTimeout(-1); // Block when reading until any data is received
+   serialPort.SetTimeout(1000); // Block when reading until any data is received
    serialPort.Open();
    
    writeDataToAddress(0x02,1,&TORQUE_ENABLE);
@@ -100,24 +101,28 @@ void MX240::simpleWrite(char *buffer,int bufferSize)
  
 std::string MX240::simpleRead()
 {
-  std::string m_data;
+  std::string m_data = "\0";
+  
+  gpio_set_value(_ctrlPin,1);
+  usleep(5000);
   gpio_set_value(_ctrlPin,0);
-  //usleep(5000);
-  serialPort.Read(data);  
+  usleep(5000);
+  serialPort.Read(m_data);  
   usleep(500);
+  data = m_data;
 
 #ifdef DEBUG
 
   printf ("read data\n");
-  for(int i=0;i<data.length();i++)
+  for(int i=0;i<m_data.length();i++)
           {
            
-            printf("%02X ",data[i]);
+            printf("%02X ",m_data[i]);
           }
           printf ("---------------\n");
 #endif
 
-  return data;
+  return m_data;
 } 
 
 
@@ -240,6 +245,7 @@ void MX240::writeDataToAddress(uint8_t ID_pose ,int tx_data,const uint16_t *addr
 #endif
 
     simpleWrite(m_tx_buffer,sizeof(m_tx_buffer));
+    simpleRead();
 
 }
 
@@ -295,10 +301,90 @@ void MX240::writeDataToAddress(uint8_t ID_pose ,int tx_data,const uint16_t *addr
 #endif
 
     simpleWrite(m_tx_buffer,sizeof(m_tx_buffer));
+    usleep(5000);
+    simpleRead();
 
 }
 
 
+void MX240::ReadDataFromAddress(uint8_t ID_pose,const uint16_t *address,uint16_t data_length )
+{
+  uint16_t mem_size=14;
+  uint16_t crc;
+
+  char m_tx_buffer [mem_size];
+  uint16_t m_len =7;
+
+
+  memcpy (m_tx_buffer,header,6);
+  memcpy (m_tx_buffer+sizeof(header),servo_ID+ID_pose,1);
+  memcpy (m_tx_buffer+sizeof(header)+1,&m_len,2);
+  memcpy (m_tx_buffer+sizeof(header)+3,inst+1,1);
+  memcpy (m_tx_buffer+sizeof(header)+4,address,2);
+  memcpy (m_tx_buffer+sizeof(header)+6,&data_length,2);
+  crc = update_crc(0,m_tx_buffer,mem_size -2);
+  memcpy (m_tx_buffer+12,&crc,2);
+#ifdef DEBUG
+  std::cout<<"ReadDataFromAddress :mem_size "<<mem_size<<std::endl;
+  std::cout<<"ReadDataFromAddress :CRC "<<crc<<std::endl;
+  std::cout << "ReadDataFromAddress : data buffer\n";
+  for(int i=0;i<sizeof(m_tx_buffer);i++)
+   {
+     printf("%02X ",m_tx_buffer[i]);
+   }
+    printf ("\n");
+
+#endif
+    simpleWrite(m_tx_buffer,sizeof(m_tx_buffer));
+}
+
+
+
+void MX240::syncRead(const uint16_t *address,const char *ID_array, int sizeofArray)
+{
+  uint16_t mem_size=14+sizeofArray;
+  uint16_t crc;
+  uint16_t data_length = 4;
+
+  char m_tx_buffer [mem_size];
+  uint16_t m_len =7+sizeofArray;
+
+
+  memcpy (m_tx_buffer,header,6);
+  memcpy (m_tx_buffer+sizeof(header),servo_ID+2,1); //broadcast ID
+  memcpy (m_tx_buffer+sizeof(header)+1,&m_len,2);
+  memcpy (m_tx_buffer+sizeof(header)+3,inst+5,1);
+  memcpy (m_tx_buffer+sizeof(header)+4,address,2);
+  memcpy (m_tx_buffer+sizeof(header)+6,&data_length,2);
+  memcpy (m_tx_buffer+sizeof(header)+8,ID_array,sizeofArray);
+  crc = update_crc(0,m_tx_buffer,mem_size -2);
+  memcpy (m_tx_buffer+mem_size-2,&crc,2);
+#ifdef DEBUG
+  std::cout<<"syncRead :mem_size "<<mem_size<<std::endl;
+  std::cout<<"syncRead :CRC "<<crc<<std::endl;
+  std::cout<<"syncRead : data buffer\n";
+  for(int i=0;i<sizeof(m_tx_buffer);i++)
+   {
+     printf("%02X ",m_tx_buffer[i]);
+   }
+    printf ("\n");
+
+#endif
+    simpleWrite(m_tx_buffer,sizeof(m_tx_buffer));
+    usleep(5000);
+    simpleRead();
+
+
+}
+
+
+
+
+/*
+ * @param goal left motor speed 
+ *              right motor speed
+ * @return None
+ */
 void MX240::set_speed(int left_speed,int right_speed)
 {
   writeDataToAddress(0x00,left_speed,&GOAL_VELOCITY,3);
@@ -317,8 +403,15 @@ void MX240::set_speed(int left_speed,int right_speed)
   crc_[0]=crc & 0x00FF;
   crc_[1]=(crc>>8) & 0x00FF;
   memcpy (m_tx_buffer+sizeof(header)+4,&crc,2);
+
   simpleWrite(m_tx_buffer ,sizeof(m_tx_buffer));
 
+}
+
+
+bool MX240::read_speed(int *left_speed,int *right_speed )
+{
+// NEED TO HAVE SYNC READ FUNCTION
 }
 
 

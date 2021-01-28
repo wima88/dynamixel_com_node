@@ -1,33 +1,42 @@
 #include "ros/ros.h"
 #include "std_msgs/String.h"
-//#include <CppLinuxSerial/SerialPort.hpp>
-#include <pthread.h>
-#include <stdio.h>
-#include <string.h>
-#include <string>
-#include <unistd.h>
-//#include "gpio.h"
-#include <vector>
-#include <iostream>
+#include "geometry_msgs/Twist.h"
 #include "mx240.h"
+#include <unistd.h>
 
-#define _ctrlPin 38
-#define BUFFER_SIZE 128
-
-using namespace mn::CppLinuxSerial;
-using namespace std;
-
-char test_buffer[] = {0x00,0x02,0x00,0x00,};
-uint16_t ad =11; 
 
 MX240 mx240;
-int main(int argc, char *argv[]) {
 
-//cout <<mx240.ping(0x00)<<endl;
-cout <<mx240.ping(0x00)<<endl;
-cout <<mx240.ping(0x01)<<endl;
-mx240.set_speed(50,-50);
- while(1){}
+/*void nodeCallBack (const geometry_msgs::Twist& msg)
+{
+  float lin_x = msg.linear.x;
+  float ang_z;
+
+  ROS_INFO("I heard you /cmd_vel");
+  mx240.set_speed(lin_x*10,lin_x*10);
 }
 
+int main(int argc, char *argv[]) {
 
+  ros::init(argc,argv,"dynamixel_com_Node");
+  ros::NodeHandle nh;
+
+  ros::Subscriber sub =nh.subscribe("/cmd_vel",1000, nodeCallBack);
+
+  ros::spin();
+
+  return 0;
+
+}*/
+
+uint16_t IDs[] = {0x01,0x02};
+//int * rh;
+
+int main(int argc, char *argv[]) {
+  usleep(5000);
+mx240.set_speed(10,10); 
+  usleep(5000000);
+mx240.syncRead(&PRESENT_VELOCITY,servo_ID,2);
+  
+  usleep(5000000);
+}
