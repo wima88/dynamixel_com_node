@@ -420,11 +420,35 @@ void MX240::set_speed(int left_speed,int right_speed)
 }
 
 
+/*
+ * @param pointer to varables containing speed values
+ * @return true if boath values were validated else false
+ * @To-Do  need to rearrange the logic
+ */  
+
 bool MX240::read_speed(int *left_speed,int *right_speed )
 {
- syncRead(&PRESENT_VELOCITY,servo_ID,2);
-}
+  const char pattern[] ={0x08,0x00,0x55,0x00} ;//length of data =0x0008, status packet with no errors 0x0055
+  std::string str_pattern;
+  str_pattern.assign(pattern,0,4);
+  std::vector<std::string> blk_data =syncRead(&PRESENT_VELOCITY,servo_ID,2);
 
+  int pattern_start_bit = blk_data[0].find(str_pattern);
+  if(pattern_start_bit >>0)
+  {
+    *left_speed =blk_data[0][pattern_start_bit+4]  | (blk_data[0][pattern_start_bit+5]<<8);
+    
+    pattern_start_bit = blk_data[1].find(str_pattern);
+    if(pattern_start_bit >>0)
+      {
+        *right_speed =blk_data[1][pattern_start_bit+4]  | (blk_data[1][pattern_start_bit+5]<<8);
+        return true ;
+      }
+  }
+  
+return false;
+
+}
 
 
 

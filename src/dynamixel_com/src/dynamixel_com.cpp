@@ -30,13 +30,14 @@ int main(int argc, char *argv[]) {
 }*/
 
 uint16_t IDs[] = {0x01,0x02};
-//int * rh;
+int  rh;
+int  lh;
 
 int main(int argc, char *argv[]) {
   usleep(5000);
-mx240.set_speed(10,10); 
-  usleep(5000000);
-mx240.syncRead(&PRESENT_VELOCITY,servo_ID,2);
-  
-  usleep(5000000);
+mx240.set_speed(20,15); 
+  usleep(2000000);
+mx240.read_speed(&rh,&lh);
+printf("%d  %d \n" ,rh,lh);
+  usleep(2000000);
 }
