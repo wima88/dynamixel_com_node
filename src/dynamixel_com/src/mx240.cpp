@@ -15,7 +15,7 @@ MX240::MX240() :  serialPort("/dev/ttyTHS1", mn::CppLinuxSerial::BaudRate::B_576
    gpio_export(_ctrlPin);
    gpio_set_dir(_ctrlPin,1); //set as output
    gpio_fd = gpio_fd_open(_ctrlPin);
-   serialPort.SetTimeout(1000); // Block when reading until any data is received
+   serialPort.SetTimeout(500); // Block when reading until any data is received
    serialPort.Open();
    
    writeDataToAddress(0x02,1,&TORQUE_ENABLE);
@@ -95,20 +95,14 @@ void MX240::simpleWrite(char *buffer,int bufferSize)
    m_s.assign(buffer,bufferSize);
    gpio_set_value(_ctrlPin,1);
    serialPort.Write(m_s);
-   usleep(2700);
+   usleep(2700);                     /*TO-DO calculate the time need to transfer x number of bitys */
    gpio_set_value(_ctrlPin,0);
 }
  
 std::string MX240::simpleRead()
 {
   std::string m_data = "\0";
-  
-  gpio_set_value(_ctrlPin,1);
-  usleep(5000);
-  gpio_set_value(_ctrlPin,0);
-  usleep(5000);
   serialPort.Read(m_data);  
-  usleep(500);
   data = m_data;
 
 #ifdef DEBUG
@@ -301,7 +295,6 @@ void MX240::writeDataToAddress(uint8_t ID_pose ,int tx_data,const uint16_t *addr
 #endif
 
     simpleWrite(m_tx_buffer,sizeof(m_tx_buffer));
-    usleep(5000);
     simpleRead();
 
 }
@@ -371,7 +364,7 @@ void MX240::syncRead(const uint16_t *address,const char *ID_array, int sizeofArr
 
 #endif
     simpleWrite(m_tx_buffer,sizeof(m_tx_buffer));
-    usleep(5000);
+    simpleRead();
     simpleRead();
 
 
@@ -411,7 +404,7 @@ void MX240::set_speed(int left_speed,int right_speed)
 
 bool MX240::read_speed(int *left_speed,int *right_speed )
 {
-// NEED TO HAVE SYNC READ FUNCTION
+ syncRead(&PRESENT_VELOCITY,servo_ID,2);
 }
 
 
