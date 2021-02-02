@@ -1,7 +1,9 @@
 <launch>
-  <node name="dynamixel_com_node" pkg="dynamixel_com" type="dynamixel_com_node" output= "screen"/>
+  <node name="dynamixel_com_node" pkg="dynamixel_com" type="dynamixel_com_node" output= "screen">
   
   <param name="base_width"        type="double"   value="0.2"/>
   <param name="wheel_radius"     type="double"   value="0.02"/>
+
+  </node>
 
 </launch>

@@ -14,11 +14,11 @@ class OdemControll
     {
       n_.getParam("base_width",_roverBase_width);
       n_.getParam("wheel_radius",_wheelRadius);
-      //topics want to publish
+      //topics want to publis
       
 
       //Topics wants to subscribe
-      sub_ =n_.subscribe("/cmd_vel",1000, &OdemControll::nodeCallBack, this);
+      sub_ =n_.subscribe("/cmd_vel",1, &OdemControll::nodeCallBack, this);
 
     }
     
@@ -44,7 +44,13 @@ class OdemControll
       *wheel_R = _wheelRadius;
     }
 
+    void get_wheelSpeed()
+    {
+      int L_,R_;
+      mx240.read_speed(&L_,&R_);
+      ROS_INFO("left speed = %f  right rpm = %f",(L_*0.23) ,(R_*0.23));
 
+    }
 
 
   private:
@@ -62,6 +68,7 @@ class OdemControll
 
 
 int main(int argc, char *argv[]) {
+
     
 
   double roverBase_width =0.1;
@@ -73,13 +80,19 @@ int main(int argc, char *argv[]) {
   OdemControll odm_ctrl;
 
   odm_ctrl.get_param(&roverBase_width,&wheelRadius);
-
+ 
   ROS_INFO ("roverBase_width = %f" ,roverBase_width);
   ROS_INFO ("wheel Radius= %f" ,wheelRadius);
 
+  ros::Rate loopRate(30);
+ while(ros::ok())
+  {
+    odm_ctrl.get_wheelSpeed();
 
-  ros::spin();
-
+    ros::spinOnce();
+    loopRate.sleep();
+    
+  }
   return 0;
 
 }
