@@ -13,7 +13,7 @@
 #define _ctrlPin 38
 #define BUFFER_SIZE 128
 
-#define DEBUG 1
+//#define DEBUG 1
 
 class MX240 {
    public:
