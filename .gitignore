@@ -29,6 +29,10 @@ devel_isolated/
 .project
 .cproject
 
+#vim temps
+*.swo
+*.swp
+
 # qcreator stuff
 CMakeLists.txt.user
 
