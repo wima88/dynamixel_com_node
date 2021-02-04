@@ -1,7 +1,11 @@
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 #include "geometry_msgs/Twist.h"
+#include "tf/transform_broadcaster.h"
+#include <nav_msgs/Odometry.h>
+
 #include "mx240.h"
+
 #include <unistd.h>
 
 
@@ -15,7 +19,7 @@ class OdemControll
       n_.getParam("base_width",_roverBase_width);
       n_.getParam("wheel_radius",_wheelRadius);
       //topics want to publis
-      
+      odem_pub_ = n_.advertise<nav_msgs::Odometry>("odom", 50);
 
       //Topics wants to subscribe
       sub_ =n_.subscribe("/cmd_vel",1, &OdemControll::nodeCallBack, this);
@@ -28,13 +32,13 @@ class OdemControll
       float lin_x = msg.linear.x;
       float ang_z = msg.angular.z;
 
-      float leftWheelSpeed = lin_x - ((_roverBase_width/2)*ang_z);
-      float rightWheelSpeed = lin_x + ((_roverBase_width/2)*ang_z);
+      float leftWheelSpeed = lin_x - ((_roverBase_width/2)*ang_z); // linear vel
+      float rightWheelSpeed = lin_x + ((_roverBase_width/2)*ang_z);// linear vel
 
        int leftRpm_reg_val = ((leftWheelSpeed)/(0.10472*_wheelRadius))/0.23;
        int righttRpm_reg_val = ((rightWheelSpeed)/(0.10472*_wheelRadius))/0.23;
 
-       ROS_INFO("left rpm = %f  right rpm = %f",(leftRpm_reg_val*0.23) ,(righttRpm_reg_val*0.23));
+       ROS_INFO("left rpm = %d  right rpm = %d",leftRpm_reg_val ,righttRpm_reg_val);
        mx240.set_speed(leftRpm_reg_val,righttRpm_reg_val);
      }
 
@@ -52,14 +56,50 @@ class OdemControll
 
     }
 
+    void genOdemInfo()
+    {
+      //calculate linear x and anguler z 
+      mx240.read_speed(&left_encdr_,&right_encdr_); // update the wheel speed factor
+      float l_wheelSpeed_ = ((left_encdr_ *0.23)/60)*(_wheelRadius*6.2831); 
+      float r_wheelSpeed_ = ((right_encdr_ *0.23)/60)*(_wheelRadius*6.2831); 
+
+      vth= (r_wheelSpeed_ - l_wheelSpeed_)/_roverBase_width;
+      vx = (l_wheelSpeed_ + r_wheelSpeed_)/2;
+      ROS_INFO("linear speed  = %f",vx);
+      ROS_INFO("angular speed  = %f",vth);
+      ROS_INFO("====================");
+
+      //current_time = ros::Time::now();
+    }
+
+
 
   private:
     ros::NodeHandle n_  ;
-    ros::Publisher pub_ ;
+    ros::Publisher odem_pub_ ;
     ros::Subscriber sub_;
+
+    tf::TransformBroadcaster odom_broadcaster;
     
     double _roverBase_width =0.1;
     double _wheelRadius = 0.001;
+
+    int left_encdr_, right_encdr_; // wheel speed factor
+
+
+    /**************************/
+    double x = 0.0;
+  	double y = 0.0;
+  	double th = 0.0;
+
+  	double vx = 0.0;
+  	double vy = 0.0;
+  	double vth =0.0;
+
+    //ros::Time current_time, last_time;
+    //current_time = ros::Time::now();
+    //last_time = ros::Time::now();
+    /**************************/
 
     MX240 mx240;
 
@@ -84,10 +124,13 @@ int main(int argc, char *argv[]) {
   ROS_INFO ("roverBase_width = %f" ,roverBase_width);
   ROS_INFO ("wheel Radius= %f" ,wheelRadius);
 
-  ros::Rate loopRate(30);
+  ros::Rate loopRate(10);
  while(ros::ok())
   {
-    odm_ctrl.get_wheelSpeed();
+    //odm_ctrl.get_wheelSpeed();
+    odm_ctrl.genOdemInfo();
+
+		//call odem set here
 
     ros::spinOnce();
     loopRate.sleep();
