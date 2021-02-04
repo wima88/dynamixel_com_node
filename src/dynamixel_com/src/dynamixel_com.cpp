@@ -65,6 +65,7 @@ class OdemControll
 
       vth= (r_wheelSpeed_ - l_wheelSpeed_)/_roverBase_width;
       vx = (l_wheelSpeed_ + r_wheelSpeed_)/2;
+      
       ROS_INFO("linear speed  = %f",vx);
       ROS_INFO("angular speed  = %f",vth);
       ROS_INFO("====================");

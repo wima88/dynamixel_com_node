@@ -436,12 +436,20 @@ bool MX240::read_speed(int *left_speed,int *right_speed )
   int pattern_start_bit = blk_data[0].find(str_pattern);
   if(pattern_start_bit >>0)
   {
-    *left_speed =blk_data[0][pattern_start_bit+4]  | (blk_data[0][pattern_start_bit+5]<<8);
+    *left_speed =blk_data[0][pattern_start_bit+4]  
+               | (blk_data[0][pattern_start_bit+5]<<8)
+               | (blk_data[0][pattern_start_bit+6]<<16)
+               | (blk_data[0][pattern_start_bit+7]<<24);
     
     pattern_start_bit = blk_data[1].find(str_pattern);
     if(pattern_start_bit >>0)
       {
-        *right_speed =blk_data[1][pattern_start_bit+4]  | (blk_data[1][pattern_start_bit+5]<<8);
+        *right_speed =blk_data[1][pattern_start_bit+4]  
+               | (blk_data[1][pattern_start_bit+5]<<8)
+               | (blk_data[1][pattern_start_bit+6]<<16)
+               | (blk_data[1][pattern_start_bit+7]<<24);
+
+        printf("leftSpeed = %d  rightSpeed = %d \n", *left_speed,*right_speed);
         return true ;
       }
   }
