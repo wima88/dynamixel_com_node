@@ -53,6 +53,8 @@ class MX240 {
       void simpleWrite(char * buffer, int bufferSize);
       std::string simpleRead();
       bool crc_check();
+      bool crc_check(std::string _data);
+      uint16_t param_length_calc(std::string _data);
       uint16_t param_length_calc();
 
 

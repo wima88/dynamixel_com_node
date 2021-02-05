@@ -142,6 +142,28 @@ uint16_t MX240::param_length_calc()
 
 
 
+/*----------------overload function ---------------
+ * @param datastream
+ * @return length of parameters in recieve data
+ */
+uint16_t MX240::param_length_calc(std::string _data)
+{
+  uint16_t data_length = _data.length();
+  std::string header_pattern ;
+  header_pattern.assign(header,0,4);
+
+  header_pattern_start_bit = _data.find(header_pattern);
+
+#ifdef DEBUG 
+  std::cout <<"param_length_calc :patern found at"<<header_pattern_start_bit <<std::endl;
+#endif
+
+  if((header_pattern_start_bit > 4) ||( header_pattern_start_bit< 0))
+    return 0;
+	else
+		return  ((uint16_t)data[6+header_pattern_start_bit]<<8)|data[5+header_pattern_start_bit]; 
+}
+
 
 /*
  * @param NONE
@@ -189,6 +211,54 @@ bool MX240::crc_check()
 
 }
 
+/*----------------overload function ---------------
+ * @param datastream
+ * @return bool if the crc check validated passes the 1
+ *              else passes 0;
+ */
+
+bool MX240::crc_check(std::string _data)
+{
+  uint16_t crc;
+  uint16_t parm_len;
+  if(_data.length() < 6){
+  return false;}
+
+  parm_len=param_length_calc(_data);
+
+  if(parm_len == 0 || parm_len <3)
+  {
+    return false ;
+  }
+  
+  
+ char data_buffer[7+parm_len];
+ std::size_t length = _data.copy(data_buffer,7+parm_len,header_pattern_start_bit);
+
+#ifdef DEBUG
+ printf("crc_check :param _len = %d\n",parm_len);
+ printf("crc_check :data_length=%d\n",7+parm_len);
+ printf("crc_check :data\n");
+  for(int i=0;i<sizeof(data_buffer);i++)
+          {
+           
+            printf("%02X ",data_buffer[i]);
+          }
+          printf ("----------------\n");
+#endif
+          
+	crc = update_crc(0,data_buffer,5+parm_len);
+	if(crc ==   ((uint16_t)data_buffer[7+parm_len]<<8)|data_buffer[6+parm_len])
+	{
+
+    //printf("crc_check : pass\n");
+  	return true;
+  }
+	else
+    //printf("crc_check : fail\n");
+ 		return false;
+
+}
 
 
 /*
@@ -432,6 +502,14 @@ bool MX240::read_speed(int *left_speed,int *right_speed )
   std::string str_pattern;
   str_pattern.assign(pattern,0,4);
   std::vector<std::string> blk_data =syncRead(&PRESENT_VELOCITY,servo_ID,2);
+
+  // check crc for incoming data stream
+  bool crc_flag_0 = crc_check(blk_data[0]);
+  bool crc_flag_1 = crc_check(blk_data[1]);
+  if(! (crc_flag_0 &&crc_flag_1))
+  {
+    return false;
+  }
 
   int pattern_start_bit = blk_data[0].find(str_pattern);
   if(pattern_start_bit >>0)
