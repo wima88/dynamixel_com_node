@@ -1,7 +1,7 @@
-#include "ros/ros.h"
+#include <ros/ros.h>
 #include "std_msgs/String.h"
 #include "geometry_msgs/Twist.h"
-#include "tf/transform_broadcaster.h"
+#include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
 
 #include "mx240.h"
@@ -19,7 +19,7 @@ class OdemControll
       n_.getParam("base_width",_roverBase_width);
       n_.getParam("wheel_radius",_wheelRadius);
       //topics want to publis
-      odem_pub_ = n_.advertise<nav_msgs::Odometry>("odom", 50);
+      odom_pub_ = n_.advertise<nav_msgs::Odometry>("odom", 50);
 
       //Topics wants to subscribe
       sub_ =n_.subscribe("/cmd_vel",1, &OdemControll::nodeCallBack, this);
@@ -56,28 +56,84 @@ class OdemControll
 
     }
 
-    void genOdemInfo()
+    void broadcast_OdemInfo()
     {
       //calculate linear x and anguler z 
-      mx240.read_speed(&left_encdr_,&right_encdr_); // update the wheel speed factor
-      float l_wheelSpeed_ = ((left_encdr_ *0.23)/60)*(_wheelRadius*6.2831); 
-      float r_wheelSpeed_ = ((right_encdr_ *0.23)/60)*(_wheelRadius*6.2831); 
+      if(mx240.read_speed(&left_encdr_,&right_encdr_))
+      {
+        float l_wheelSpeed_ = ((left_encdr_ *0.23)/60)*(_wheelRadius*6.2831); 
+        float r_wheelSpeed_ = ((right_encdr_ *0.23)/60)*(_wheelRadius*6.2831); 
 
-      vth= (r_wheelSpeed_ - l_wheelSpeed_)/_roverBase_width;
-      vx = (l_wheelSpeed_ + r_wheelSpeed_)/2;
+        vth= (r_wheelSpeed_ - l_wheelSpeed_)/_roverBase_width;
+        vx = (l_wheelSpeed_ + r_wheelSpeed_)/2;
       
-      ROS_INFO("linear speed  = %f",vx);
-      ROS_INFO("angular speed  = %f",vth);
-      ROS_INFO("====================");
+        ROS_INFO("linear speed  = %f",vx);
+        ROS_INFO("angular speed  = %f",vth);
+        ROS_INFO("====================");
 
-      //current_time = ros::Time::now();
+        current_time = ros::Time::now();
+
+        double dt = (current_time - last_time).toSec();       // time diferance
+        double delta_x = (vx * cos(th) - vy * sin(th)) * dt;  //x distance
+        double delta_y = (vx * sin(th) + vy * cos(th)) * dt;  //y distance
+        double delta_th = vth * dt;                           //anguler distance
+
+        //update the total travel distance in x,y and anguler
+			  x += delta_x;
+    	  y += delta_y;
+    	  th += delta_th;
+        ROS_INFO(" travel x =%f",x);
+
+        //since all odometry is 6DOF we'll need a quaternion created from yaw
+	      geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(th);
+
+			  //first, we'll publish the transform over tf
+        geometry_msgs::TransformStamped odom_trans;
+        odom_trans.header.stamp = current_time;
+        odom_trans.header.frame_id = "odom";
+        odom_trans.child_frame_id = "base_link";
+
+        odom_trans.transform.translation.x = x;
+        odom_trans.transform.translation.y = y;
+        odom_trans.transform.translation.z = 0.0;
+        odom_trans.transform.rotation = odom_quat;
+
+        //send the transform
+        odom_broadcaster.sendTransform(odom_trans);
+
+			  //next, we'll publish the odometry message over ROS
+    	  nav_msgs::Odometry odom;
+    	  odom.header.stamp = current_time;
+    	  odom.header.frame_id = "odom";
+
+   		  //set the position
+    	  odom.pose.pose.position.x = x;
+    	  odom.pose.pose.position.y = y;
+    	  odom.pose.pose.position.z = 0.0;
+    	  odom.pose.pose.orientation = odom_quat;
+
+    	  //set the velocity
+    	  odom.child_frame_id = "base_link";
+    	  odom.twist.twist.linear.x = vx;
+    	  odom.twist.twist.linear.y = vy;
+    	  odom.twist.twist.angular.z = vth;
+
+    	  //publish the message
+    	  odom_pub_.publish(odom);
+
+        last_time = current_time;
+      }//end if for wheel speed check
+      else
+      {
+        ROS_WARN("Error in wheel Speed");
+      }
     }
 
 
 
   private:
     ros::NodeHandle n_  ;
-    ros::Publisher odem_pub_ ;
+    ros::Publisher odom_pub_ ;
     ros::Subscriber sub_;
 
     tf::TransformBroadcaster odom_broadcaster;
@@ -97,9 +153,8 @@ class OdemControll
   	double vy = 0.0;
   	double vth =0.0;
 
-    //ros::Time current_time, last_time;
-    //current_time = ros::Time::now();
-    //last_time = ros::Time::now();
+    ros::Time current_time= ros::Time::now();
+    ros::Time last_time = ros::Time::now();
     /**************************/
 
     MX240 mx240;
@@ -128,12 +183,9 @@ int main(int argc, char *argv[]) {
   ros::Rate loopRate(10);
  while(ros::ok())
   {
-    //odm_ctrl.get_wheelSpeed();
-    odm_ctrl.genOdemInfo();
-
-		//call odem set here
 
     ros::spinOnce();
+    odm_ctrl.broadcast_OdemInfo();
     loopRate.sleep();
     
   }

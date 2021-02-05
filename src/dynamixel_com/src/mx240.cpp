@@ -449,7 +449,6 @@ bool MX240::read_speed(int *left_speed,int *right_speed )
                | (blk_data[1][pattern_start_bit+6]<<16)
                | (blk_data[1][pattern_start_bit+7]<<24);
 
-        printf("leftSpeed = %d  rightSpeed = %d \n", *left_speed,*right_speed);
         return true ;
       }
   }
